@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { usePomodoroSettings } from "@/components/pomodoro-settings-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -63,6 +64,14 @@ type ThemeColorSet = {
   background: string
   foreground: string
 }
+const DEFAULT_THEME_COLORS: ThemeColorSet = {
+  primary: "hsl(210, 90%, 60%)",
+  secondary: "hsl(160, 60%, 45%)",
+  accent: "hsl(280, 80%, 70%)",
+  background: "hsl(210, 20%, 10%)",
+  foreground: "hsl(210, 20%, 95%)",
+}
+
 
 interface RandomThemeDialogProps {
   open: boolean
@@ -73,7 +82,13 @@ interface RandomThemeDialogProps {
 
 function RandomThemeDialog({ open, onOpenChange, onApply, onSave }: RandomThemeDialogProps) {
   const [themeName, setThemeName] = useState("")
-  const [randomColors, setRandomColors] = useState<ThemeColorSet>(() => generateRandomColors())
+  const [randomColors, setRandomColors] = useState<ThemeColorSet>(DEFAULT_THEME_COLORS)
+
+  useEffect(() => {
+    if (open) {
+      setRandomColors(generateRandomColors())
+    }
+  }, [open])
 
   function generateRandomColors(): ThemeColorSet {
     const hues = [Math.floor(Math.random() * 360), Math.floor(Math.random() * 360), Math.floor(Math.random() * 360)]
@@ -202,16 +217,7 @@ export function SettingsContent() {
     weeklyReport: true,
     taskDeadlines: true,
   })
-  const [pomodoroSettings, setPomodoroSettings] = useState({
-    workDuration: 25,
-    shortBreak: 5,
-    longBreak: 15,
-    longBreakInterval: 4,
-    autoStartBreaks: false,
-    autoStartPomodoros: false,
-    soundEnabled: true,
-    volume: 70,
-  })
+  const { settings: pomodoroSettings, updateSettings: updatePomodoroSettings } = usePomodoroSettings()
   const [profile, setProfile] = useState<UserProfile>({
     name: "John Doe",
     email: "john@example.com",
@@ -426,12 +432,11 @@ export function SettingsContent() {
                     min="1"
                     max="60"
                     value={pomodoroSettings.workDuration}
-                    onChange={(e) =>
-                      setPomodoroSettings((prev) => ({
-                        ...prev,
-                        workDuration: Number.parseInt(e.target.value) || 25,
-                      }))
-                    }
+                    onChange={(e) => {
+                      const parsed = Number.parseInt(e.target.value, 10)
+                      const clamped = Number.isNaN(parsed) ? 25 : Math.min(60, Math.max(1, parsed))
+                      updatePomodoroSettings({ workDuration: clamped })
+                    }}
                   />
                 </div>
 
@@ -443,12 +448,11 @@ export function SettingsContent() {
                     min="1"
                     max="30"
                     value={pomodoroSettings.shortBreak}
-                    onChange={(e) =>
-                      setPomodoroSettings((prev) => ({
-                        ...prev,
-                        shortBreak: Number.parseInt(e.target.value) || 5,
-                      }))
-                    }
+                    onChange={(e) => {
+                      const parsed = Number.parseInt(e.target.value, 10)
+                      const clamped = Number.isNaN(parsed) ? 5 : Math.min(30, Math.max(1, parsed))
+                      updatePomodoroSettings({ shortBreak: clamped })
+                    }}
                   />
                 </div>
 
@@ -460,12 +464,11 @@ export function SettingsContent() {
                     min="1"
                     max="60"
                     value={pomodoroSettings.longBreak}
-                    onChange={(e) =>
-                      setPomodoroSettings((prev) => ({
-                        ...prev,
-                        longBreak: Number.parseInt(e.target.value) || 15,
-                      }))
-                    }
+                    onChange={(e) => {
+                      const parsed = Number.parseInt(e.target.value, 10)
+                      const clamped = Number.isNaN(parsed) ? 15 : Math.min(60, Math.max(1, parsed))
+                      updatePomodoroSettings({ longBreak: clamped })
+                    }}
                   />
                 </div>
 
@@ -477,12 +480,11 @@ export function SettingsContent() {
                     min="2"
                     max="10"
                     value={pomodoroSettings.longBreakInterval}
-                    onChange={(e) =>
-                      setPomodoroSettings((prev) => ({
-                        ...prev,
-                        longBreakInterval: Number.parseInt(e.target.value) || 4,
-                      }))
-                    }
+                    onChange={(e) => {
+                      const parsed = Number.parseInt(e.target.value, 10)
+                      const clamped = Number.isNaN(parsed) ? 4 : Math.min(10, Math.max(2, parsed))
+                      updatePomodoroSettings({ longBreakInterval: clamped })
+                    }}
                   />
                 </div>
               </div>
@@ -497,12 +499,9 @@ export function SettingsContent() {
                   </div>
                   <Switch
                     checked={pomodoroSettings.autoStartBreaks}
-                    onCheckedChange={(checked) =>
-                      setPomodoroSettings((prev) => ({
-                        ...prev,
-                        autoStartBreaks: checked,
-                      }))
-                    }
+                    onCheckedChange={(checked) => {
+                      updatePomodoroSettings({ autoStartBreaks: checked })
+                    }}
                   />
                 </div>
 
@@ -513,12 +512,9 @@ export function SettingsContent() {
                   </div>
                   <Switch
                     checked={pomodoroSettings.autoStartPomodoros}
-                    onCheckedChange={(checked) =>
-                      setPomodoroSettings((prev) => ({
-                        ...prev,
-                        autoStartPomodoros: checked,
-                      }))
-                    }
+                    onCheckedChange={(checked) => {
+                      updatePomodoroSettings({ autoStartPomodoros: checked })
+                    }}
                   />
                 </div>
 
@@ -529,12 +525,9 @@ export function SettingsContent() {
                   </div>
                   <Switch
                     checked={pomodoroSettings.soundEnabled}
-                    onCheckedChange={(checked) =>
-                      setPomodoroSettings((prev) => ({
-                        ...prev,
-                        soundEnabled: checked,
-                      }))
-                    }
+                    onCheckedChange={(checked) => {
+                      updatePomodoroSettings({ soundEnabled: checked })
+                    }}
                   />
                 </div>
 
@@ -548,12 +541,11 @@ export function SettingsContent() {
                         min="0"
                         max="100"
                         value={pomodoroSettings.volume}
-                        onChange={(e) =>
-                          setPomodoroSettings((prev) => ({
-                            ...prev,
-                            volume: Number.parseInt(e.target.value),
-                          }))
-                        }
+                        onChange={(e) => {
+                          const parsed = Number.parseInt(e.target.value, 10)
+                          const clamped = Number.isNaN(parsed) ? 70 : Math.min(100, Math.max(0, parsed))
+                          updatePomodoroSettings({ volume: clamped })
+                        }}
                         className="flex-1"
                       />
                       <Volume2 className="w-4 h-4 text-muted-foreground" />

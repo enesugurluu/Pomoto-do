@@ -1,12 +1,15 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ProBadge } from "./pro-badge"
 import { UpgradeModal } from "./upgrade-modal"
 import { useCustomTheme } from "@/components/theme-provider"
@@ -18,13 +21,13 @@ import {
   Settings,
   CheckSquare,
   Clock,
-  Target,
-  Coffee,
-  Zap,
   Crown,
   Focus,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { usePomodoroSettings, DEFAULT_POMODORO_SETTINGS } from "@/components/pomodoro-settings-provider"
 
 interface Task {
   id: string
@@ -72,26 +75,75 @@ const mockTasks: Task[] = [
 
 type TimerMode = "work" | "shortBreak" | "longBreak"
 
-const timerSettings = {
-  work: { duration: 25 * 60, label: "Work Session" },
-  shortBreak: { duration: 5 * 60, label: "Short Break" },
-  longBreak: { duration: 15 * 60, label: "Long Break" },
-}
-
 export function PomodoroTimer() {
+  const { settings: pomodoroSettings, updateSettings: updatePomodoroSettings } = usePomodoroSettings()
+
+  const workDurationSeconds = pomodoroSettings.workDuration * 60
+  const shortBreakDurationSeconds = pomodoroSettings.shortBreak * 60
+  const longBreakDurationSeconds = pomodoroSettings.longBreak * 60
+
+  const previousDurationsRef = useRef({
+    work: workDurationSeconds,
+    shortBreak: shortBreakDurationSeconds,
+    longBreak: longBreakDurationSeconds,
+  })
+
+  const QUICK_LIMITS = {
+    workDuration: { min: 1, max: 60 },
+    shortBreak: { min: 1, max: 30 },
+    longBreak: { min: 1, max: 60 },
+    longBreakInterval: { min: 2, max: 10 },
+  } as const
+
+  const clampValue = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+
+  type QuickSettingsKey = keyof typeof QUICK_LIMITS
+  type QuickSettingsState = {
+    workDuration: number
+    shortBreak: number
+    longBreak: number
+    longBreakInterval: number
+  }
+
   const [mode, setMode] = useState<TimerMode>("work")
-  const [timeLeft, setTimeLeft] = useState(timerSettings.work.duration)
+  const [timeLeft, setTimeLeft] = useState(workDurationSeconds)
   const [isRunning, setIsRunning] = useState(false)
   const [activeTaskId, setActiveTaskId] = useState<string | null>("1")
   const [completedPomodoros, setCompletedPomodoros] = useState(0)
   const [sessionCount, setSessionCount] = useState(0)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isPro] = useState(false)
-  const [isFocusMode, setIsFocusMode] = useState(false) // Added focus mode state
+  const [isFocusMode, setIsFocusMode] = useState(false)
+  const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false)
+  const [isTaskSidebarCollapsed, setIsTaskSidebarCollapsed] = useState(false)
+  const [quickSettings, setQuickSettings] = useState<QuickSettingsState>({
+    workDuration: pomodoroSettings.workDuration,
+    shortBreak: pomodoroSettings.shortBreak,
+    longBreak: pomodoroSettings.longBreak,
+    longBreakInterval: pomodoroSettings.longBreakInterval,
+  })
   const { customTheme, isDevMode } = useCustomTheme()
 
   const activeTask = mockTasks.find((task) => task.id === activeTaskId)
-  const progress = ((timerSettings[mode].duration - timeLeft) / timerSettings[mode].duration) * 100
+
+  const getDurationForMode = useCallback(
+    (timerMode: TimerMode) => {
+      switch (timerMode) {
+        case "work":
+          return workDurationSeconds
+        case "shortBreak":
+          return shortBreakDurationSeconds
+        case "longBreak":
+        default:
+          return longBreakDurationSeconds
+      }
+    },
+    [workDurationSeconds, shortBreakDurationSeconds, longBreakDurationSeconds],
+  )
+
+  const modeDurationSeconds = getDurationForMode(mode)
+  const safeDuration = Math.max(1, modeDurationSeconds)
+  const progress = Math.min(100, Math.max(0, ((safeDuration - timeLeft) / safeDuration) * 100))
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -103,7 +155,7 @@ export function PomodoroTimer() {
   const handlePause = () => setIsRunning(false)
   const handleReset = () => {
     setIsRunning(false)
-    setTimeLeft(timerSettings[mode].duration)
+    setTimeLeft(getDurationForMode(mode))
   }
 
   const handleSkip = () => {
@@ -114,15 +166,21 @@ export function PomodoroTimer() {
   const completeSession = useCallback(() => {
     if (mode === "work") {
       setCompletedPomodoros((prev) => prev + 1)
-      setSessionCount((prev) => prev + 1)
-      const nextMode = sessionCount % 4 === 3 ? "longBreak" : "shortBreak"
-      setMode(nextMode)
-      setTimeLeft(timerSettings[nextMode].duration)
+      setSessionCount((prev) => {
+        const newCount = prev + 1
+        const isLongBreak = newCount % pomodoroSettings.longBreakInterval === 0
+        const nextMode: TimerMode = isLongBreak ? "longBreak" : "shortBreak"
+        setMode(nextMode)
+        setTimeLeft(getDurationForMode(nextMode))
+        setIsRunning(pomodoroSettings.autoStartBreaks)
+        return newCount
+      })
     } else {
       setMode("work")
-      setTimeLeft(timerSettings.work.duration)
+      setTimeLeft(getDurationForMode("work"))
+      setIsRunning(pomodoroSettings.autoStartPomodoros)
     }
-  }, [mode, sessionCount])
+  }, [mode, pomodoroSettings.longBreakInterval, pomodoroSettings.autoStartBreaks, pomodoroSettings.autoStartPomodoros, getDurationForMode])
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
@@ -141,6 +199,100 @@ export function PomodoroTimer() {
     }
   }, [isRunning, timeLeft, completeSession])
 
+  useEffect(() => {
+    const newDuration = getDurationForMode(mode)
+    const previousDurationForMode = previousDurationsRef.current[mode]
+
+    setTimeLeft((prev) => {
+      const normalizedPrev = Math.max(0, prev)
+
+      if (isRunning) {
+        return Math.min(normalizedPrev, newDuration)
+      }
+
+      if (newDuration !== previousDurationForMode) {
+        return newDuration
+      }
+
+      if (normalizedPrev > newDuration) {
+        return newDuration
+      }
+
+      return normalizedPrev
+    })
+
+    previousDurationsRef.current = {
+      work: workDurationSeconds,
+      shortBreak: shortBreakDurationSeconds,
+      longBreak: longBreakDurationSeconds,
+    }
+  }, [
+    getDurationForMode,
+    mode,
+    isRunning,
+    workDurationSeconds,
+    shortBreakDurationSeconds,
+    longBreakDurationSeconds,
+  ])
+
+
+  const handleQuickSettingChange = (key: QuickSettingsKey, value: number) => {
+    if (Number.isNaN(value)) return
+    const { min, max } = QUICK_LIMITS[key]
+    const clamped = clampValue(value, min, max)
+    setQuickSettings((prev) => ({
+      ...prev,
+      [key]: clamped,
+    }))
+  }
+
+  const applyQuickSettings = (settingsToApply: QuickSettingsState) => {
+    const sanitized = {
+      workDuration: clampValue(settingsToApply.workDuration, QUICK_LIMITS.workDuration.min, QUICK_LIMITS.workDuration.max),
+      shortBreak: clampValue(settingsToApply.shortBreak, QUICK_LIMITS.shortBreak.min, QUICK_LIMITS.shortBreak.max),
+      longBreak: clampValue(settingsToApply.longBreak, QUICK_LIMITS.longBreak.min, QUICK_LIMITS.longBreak.max),
+      longBreakInterval: clampValue(
+        settingsToApply.longBreakInterval,
+        QUICK_LIMITS.longBreakInterval.min,
+        QUICK_LIMITS.longBreakInterval.max,
+      ),
+    }
+
+    setQuickSettings(sanitized)
+    updatePomodoroSettings(sanitized)
+  }
+
+  const handleQuickApply = () => {
+    applyQuickSettings(quickSettings)
+    setIsQuickSettingsOpen(false)
+  }
+
+  const handleQuickReset = () => {
+    applyQuickSettings({
+      workDuration: DEFAULT_POMODORO_SETTINGS.workDuration,
+      shortBreak: DEFAULT_POMODORO_SETTINGS.shortBreak,
+      longBreak: DEFAULT_POMODORO_SETTINGS.longBreak,
+      longBreakInterval: DEFAULT_POMODORO_SETTINGS.longBreakInterval,
+    })
+  }
+
+  useEffect(() => {
+    if (!isQuickSettingsOpen) return
+
+    setQuickSettings({
+      workDuration: pomodoroSettings.workDuration,
+      shortBreak: pomodoroSettings.shortBreak,
+      longBreak: pomodoroSettings.longBreak,
+      longBreakInterval: pomodoroSettings.longBreakInterval,
+    })
+  }, [
+    isQuickSettingsOpen,
+    pomodoroSettings.workDuration,
+    pomodoroSettings.shortBreak,
+    pomodoroSettings.longBreak,
+    pomodoroSettings.longBreakInterval,
+  ])
+
   const getPriorityColor = (priority: Task["priority"]) => {
     switch (priority) {
       case "urgent":
@@ -153,17 +305,6 @@ export function PomodoroTimer() {
         return "bg-green-500"
       default:
         return "bg-gray-500"
-    }
-  }
-
-  const getModeIcon = () => {
-    switch (mode) {
-      case "work":
-        return <Target className="w-6 h-6" />
-      case "shortBreak":
-        return <Coffee className="w-6 h-6" />
-      case "longBreak":
-        return <Zap className="w-6 h-6" />
     }
   }
 
@@ -228,6 +369,10 @@ export function PomodoroTimer() {
     setIsFocusMode(!isFocusMode)
   }
 
+  const toggleTaskSidebar = () => {
+    setIsTaskSidebarCollapsed((previous) => !previous)
+  }
+
   return (
     <>
       {isPremiumTheme && (
@@ -249,24 +394,6 @@ export function PomodoroTimer() {
         {/* Main Timer Area */}
         <div className="flex-1 p-6 flex flex-col items-center justify-center">
           <div className="w-full max-w-2xl space-y-8">
-            {/* Mode Indicator */}
-            <div className={cn("text-center", isFocusMode && "blur-sm opacity-50")}>
-              <div className="flex items-center justify-center gap-3 mb-4">
-                {getModeIcon()}
-                <h1 className="text-2xl font-bold">{timerSettings[mode].label}</h1>
-                {isPremiumTheme && (
-                  <Badge className="bg-gradient-to-r from-accent to-accent/80 text-accent-foreground">
-                    <Crown className="w-3 h-3 mr-1" />
-                    Premium
-                  </Badge>
-                )}
-              </div>
-              <div className="flex justify-center mb-4">{getSessionBadge()}</div>
-              <p className="text-muted-foreground">
-                {activeTask ? `Working on: ${activeTask.title}` : "Select a task to get started"}
-              </p>
-            </div>
-
             <div
               className={cn(
                 "relative flex items-center justify-center p-8 rounded-3xl",
@@ -286,6 +413,99 @@ export function PomodoroTimer() {
                 <Focus className="w-4 h-4" />
                 Focus Mode
               </Button>
+
+              <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-50">
+                <Dialog open={isQuickSettingsOpen} onOpenChange={setIsQuickSettingsOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 bg-background/80 backdrop-blur-sm"
+                      aria-label="Open pomodoro settings"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-sm space-y-6">
+                    <DialogHeader>
+                      <DialogTitle className="text-base">Timer settings</DialogTitle>
+                      <DialogDescription>Adjust your work and break durations.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="quick-work-duration">Work (minutes)</Label>
+                        <Input
+                          id="quick-work-duration"
+                          type="number"
+                          min={1}
+                          max={60}
+                          value={quickSettings.workDuration}
+                          onChange={(event) => {
+                            const parsed = Number.parseInt(event.target.value, 10)
+                            handleQuickSettingChange("workDuration", parsed)
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="quick-short-break">Short Break (minutes)</Label>
+                        <Input
+                          id="quick-short-break"
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={quickSettings.shortBreak}
+                          onChange={(event) => {
+                            const parsed = Number.parseInt(event.target.value, 10)
+                            handleQuickSettingChange("shortBreak", parsed)
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="quick-long-break">Long Break (minutes)</Label>
+                        <Input
+                          id="quick-long-break"
+                          type="number"
+                          min={1}
+                          max={60}
+                          value={quickSettings.longBreak}
+                          onChange={(event) => {
+                            const parsed = Number.parseInt(event.target.value, 10)
+                            handleQuickSettingChange("longBreak", parsed)
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="quick-long-break-interval">Long Break Interval (sessions)</Label>
+                        <Input
+                          id="quick-long-break-interval"
+                          type="number"
+                          min={2}
+                          max={10}
+                          value={quickSettings.longBreakInterval}
+                          onChange={(event) => {
+                            const parsed = Number.parseInt(event.target.value, 10)
+                            handleQuickSettingChange("longBreakInterval", parsed)
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      These quick changes stay in sync with the full settings screen.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border/60">
+                      <Button variant="outline" onClick={handleQuickReset}>Reset</Button>
+                      <Button onClick={handleQuickApply}>Apply</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                {isPremiumTheme && (
+                  <Badge variant="secondary" className="bg-white/10 backdrop-blur-sm border-white/20">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Premium Theme
+                  </Badge>
+                )}
+              </div>
 
               {/* Circular Progress Timer */}
               <div className="relative flex items-center justify-center">
@@ -326,6 +546,7 @@ export function PomodoroTimer() {
 
                   {/* Timer Display */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                    <div className="mb-3">{getSessionBadge()}</div>
                     <div
                       className={cn(
                         "text-6xl font-mono font-bold mb-2",
@@ -349,14 +570,6 @@ export function PomodoroTimer() {
                 </div>
               </div>
 
-              {isPremiumTheme && (
-                <div className="absolute top-4 right-4">
-                  <Badge variant="secondary" className="bg-white/10 backdrop-blur-sm border-white/20">
-                    <Crown className="w-3 h-3 mr-1" />
-                    Premium Theme
-                  </Badge>
-                </div>
-              )}
             </div>
 
             <div className={cn("flex items-center justify-center gap-4", isFocusMode && "z-40 relative")}>
@@ -474,74 +687,107 @@ export function PomodoroTimer() {
         {!isFocusMode && (
           <div
             className={cn(
-              "w-80 border-l border-border",
-              isPremiumTheme ? "bg-card/95 backdrop-blur-md border-white/20 shadow-2xl" : "bg-card", // Improved sidebar visibility
+              "relative flex h-full items-stretch border-l border-border transition-all duration-300 ease-in-out",
+              isPremiumTheme ? "bg-card/95 backdrop-blur-md border-white/20 shadow-2xl" : "bg-card",
             )}
+            style={{ width: isTaskSidebarCollapsed ? 56 : 376 }}
           >
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Active Tasks</h2>
-                <Button variant="ghost" size="sm">
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <ScrollArea className="h-[calc(100vh-200px)]">
-                <div className="space-y-3">
-                  {mockTasks.map((task) => (
-                    <Card
-                      key={task.id}
-                      className={cn(
-                        "cursor-pointer transition-all hover:shadow-md",
-                        activeTaskId === task.id && "ring-2 ring-accent bg-accent/5",
-                        isPremiumTheme && "bg-card/98 backdrop-blur-sm border-white/20 shadow-lg",
-                      )}
-                      onClick={() => setActiveTaskId(task.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between">
-                            <h3 className="font-medium text-sm leading-tight">{task.title}</h3>
-                            <div className={cn("w-2 h-2 rounded-full mt-1", getPriorityColor(task.priority))} />
-                          </div>
-
-                          <div className="flex items-center gap-2 text-xs">
-                            <Clock className="w-3 h-3" />
-                            <span className="font-medium text-foreground">
-                              {task.completedPomodoros}/{task.estimatedPomodoros} Pomodoros
-                            </span>
-                          </div>
-
-                          <Progress value={(task.completedPomodoros / task.estimatedPomodoros) * 100} className="h-1" />
-
-                          <Badge variant="secondary" className="text-xs">
-                            {task.priority} priority
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </ScrollArea>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <Button variant="outline" className="w-full gap-2 bg-transparent" onClick={handleManageTasks}>
-                  <CheckSquare className="w-4 h-4" />
-                  Manage Tasks
-                </Button>
-
-                {!isPro && (
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2 border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
-                    onClick={() => setShowUpgradeModal(true)}
-                  >
-                    <Crown className="w-4 h-4" />
-                    Unlock Pro Timer
-                  </Button>
+            <div className="flex w-14 items-center justify-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={toggleTaskSidebar}
+                className={cn(
+                  "h-10 w-10 rounded-full border border-border bg-background/80 shadow-md transition-colors hover:bg-background",
+                  isPremiumTheme && "border-white/30 bg-card/80 text-white hover:bg-card",
                 )}
+                aria-label={isTaskSidebarCollapsed ? "Expand active tasks panel" : "Collapse active tasks panel"}
+                aria-expanded={!isTaskSidebarCollapsed}
+                aria-controls="active-tasks-panel"
+              >
+                {isTaskSidebarCollapsed ? (
+                  <ChevronsLeft className="h-4 w-4" />
+                ) : (
+                  <ChevronsRight className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <div
+              id="active-tasks-panel"
+              className={cn(
+                "overflow-hidden border-l border-border transition-all duration-300 ease-in-out",
+                isTaskSidebarCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
+                isPremiumTheme && "border-white/20",
+              )}
+              style={{ width: isTaskSidebarCollapsed ? 0 : 320 }}
+              aria-hidden={isTaskSidebarCollapsed}
+            >
+              <div className="flex h-full flex-col space-y-6 p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Active Tasks</h2>
+                  <Button variant="ghost" size="sm">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <ScrollArea className="flex-1 min-h-0 max-h-[calc(100vh-320px)] pr-1">
+                  <div className="space-y-3">
+                    {mockTasks.map((task) => (
+                      <Card
+                        key={task.id}
+                        className={cn(
+                          "cursor-pointer transition-all hover:shadow-md",
+                          activeTaskId === task.id && "ring-2 ring-accent bg-accent/5",
+                          isPremiumTheme && "bg-card/98 backdrop-blur-sm border-white/20 shadow-lg",
+                        )}
+                        onClick={() => setActiveTaskId(task.id)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between">
+                              <h3 className="text-sm font-medium leading-tight">{task.title}</h3>
+                              <div className={cn("mt-1 h-2 w-2 rounded-full", getPriorityColor(task.priority))} />
+                            </div>
+
+                            <div className="flex items-center gap-2 text-xs">
+                              <Clock className="h-3 w-3" />
+                              <span className="font-medium text-foreground">
+                                {task.completedPomodoros}/{task.estimatedPomodoros} Pomodoros
+                              </span>
+                            </div>
+
+                            <Progress value={(task.completedPomodoros / task.estimatedPomodoros) * 100} className="h-1" />
+
+                            <Badge variant="secondary" className="text-xs">
+                              {task.priority} priority
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full gap-2 bg-transparent" onClick={handleManageTasks}>
+                    <CheckSquare className="h-4 w-4" />
+                    Manage Tasks
+                  </Button>
+
+                  {!isPro && (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-accent/50 text-accent hover:bg-accent/10 bg-transparent"
+                      onClick={() => setShowUpgradeModal(true)}
+                    >
+                      <Crown className="h-4 w-4" />
+                      Unlock Pro Timer
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

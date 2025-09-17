@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
+import { PomodoroSettingsProvider } from "@/components/pomodoro-settings-provider"
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -23,7 +24,7 @@ export default function RootLayout({
       <body className="font-sans">
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
-            {children}
+            <PomodoroSettingsProvider>{children}</PomodoroSettingsProvider>
           </ThemeProvider>
         </Suspense>
         <Analytics />

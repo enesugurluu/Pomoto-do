@@ -31,16 +31,23 @@ import {
 import { cn } from "@/lib/utils"
 
 // Mock data for analytics
+const pseudoRandom = (seed: number) => {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
 const generateContributionData = () => {
   const data = []
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
   const startDate = new Date(today)
   startDate.setDate(today.getDate() - 84) // 12 weeks ago
 
   for (let i = 0; i < 84; i++) {
     const date = new Date(startDate)
     date.setDate(startDate.getDate() + i)
-    const pomodoros = Math.floor(Math.random() * 12) // 0-11 pomodoros per day
+    const randomness = pseudoRandom(i + 1)
+    const pomodoros = Math.floor(randomness * 12)
     data.push({
       date: date.toISOString().split("T")[0],
       pomodoros,
@@ -418,7 +425,7 @@ export function DashboardContent({ isPro = false, isDeveloperMode = false }: Das
                   <CardContent>
                     <div className="grid grid-cols-12 gap-1">
                       {Array.from({ length: 24 }, (_, hour) => {
-                        const intensity = Math.random() * 100
+                        const intensity = pseudoRandom(hour + 1) * 100
                         return (
                           <div
                             key={hour}
