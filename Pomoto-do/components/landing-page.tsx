@@ -240,8 +240,8 @@ export function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  "PomoTo-do transformed my workflow. The premium themes and project organization features help me stay
-                  focused and productive throughout the day."
+                  &quot;PomoTo-do transformed my workflow. The premium themes and project organization features help me stay
+                  focused and productive throughout the day.&quot;
                 </p>
               </CardContent>
             </Card>
@@ -258,8 +258,8 @@ export function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  "The Pomodoro timer with task integration is perfect. I can track my coding sessions and manage my
-                  projects all in one elegant interface."
+                  &quot;The Pomodoro timer with task integration is perfect. I can track my coding sessions and manage my
+                  projects all in one elegant interface.&quot;
                 </p>
               </CardContent>
             </Card>
@@ -276,8 +276,8 @@ export function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  "As a student, PomoTo-do helps me break down large projects into manageable tasks. The premium themes
-                  make studying more enjoyable."
+                  &quot;As a student, PomoTo-do helps me break down large projects into manageable tasks. The premium themes
+                  make studying more enjoyable.&quot;
                 </p>
               </CardContent>
             </Card>
@@ -584,3 +584,4 @@ export function LandingPage() {
     </div>
   )
 }
+

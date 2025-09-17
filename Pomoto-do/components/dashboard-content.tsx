@@ -31,16 +31,6 @@ import {
 import { cn } from "@/lib/utils"
 
 // Mock data for analytics
-const weeklyData = [
-  { day: "Mon", pomodoros: 6, tasks: 4 },
-  { day: "Tue", pomodoros: 8, tasks: 6 },
-  { day: "Wed", pomodoros: 5, tasks: 3 },
-  { day: "Thu", pomodoros: 9, tasks: 7 },
-  { day: "Fri", pomodoros: 7, tasks: 5 },
-  { day: "Sat", pomodoros: 3, tasks: 2 },
-  { day: "Sun", pomodoros: 4, tasks: 3 },
-]
-
 const generateContributionData = () => {
   const data = []
   const today = new Date()
@@ -84,7 +74,7 @@ interface DashboardContentProps {
 
 export function DashboardContent({ isPro = false, isDeveloperMode = false }: DashboardContentProps) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [developerMode, setDeveloperMode] = useState(true)
+  const [developerMode, setDeveloperMode] = useState(isDeveloperMode)
 
   const hasProAccess = isPro || developerMode
 
@@ -132,7 +122,7 @@ export function DashboardContent({ isPro = false, isDeveloperMode = false }: Das
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Today's Pomodoros</CardTitle>
+                  <CardTitle className="text-sm font-medium">Today&apos;s Pomodoros</CardTitle>
                   <Timer className="w-4 h-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -187,7 +177,7 @@ export function DashboardContent({ isPro = false, isDeveloperMode = false }: Das
                 <div className="space-y-4">
                   <TooltipProvider>
                     <div className="grid grid-cols-12 gap-1">
-                      {contributionData.map((day, index) => (
+                      {contributionData.map((day) => (
                         <Tooltip key={day.date}>
                           <TooltipTrigger asChild>
                             <div
@@ -252,7 +242,7 @@ export function DashboardContent({ isPro = false, isDeveloperMode = false }: Das
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span className="text-sm">Completed "Update documentation" task</span>
+                    <span className="text-sm">Completed &quot;Update documentation&quot; task</span>
                     <span className="text-xs text-muted-foreground ml-auto">2 hours ago</span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -262,7 +252,7 @@ export function DashboardContent({ isPro = false, isDeveloperMode = false }: Das
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-purple-500 rounded-full" />
-                    <span className="text-sm">Created new task "Client meeting preparation"</span>
+                    <span className="text-sm">Created new task &quot;Client meeting preparation&quot;</span>
                     <span className="text-xs text-muted-foreground ml-auto">5 hours ago</span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -579,3 +569,6 @@ export function DashboardContent({ isPro = false, isDeveloperMode = false }: Das
     </>
   )
 }
+
+
+

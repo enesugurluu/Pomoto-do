@@ -1,0 +1,8 @@
+ ⚠ Port 3000 is in use, trying 3001 instead.
+[Error: EPERM: operation not permitted, open 'C:\Users\enesu\OneDrive\Masaüstü\Projeler\Pomoto-doo\Pomoto-do\.next\trace'] {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'open',
+  path: 'C:\\Users\\enesu\\OneDrive\\Masaüstü\\Projeler\\Pomoto-doo\\Pomoto-do\\.next\\trace'
+}
+^C

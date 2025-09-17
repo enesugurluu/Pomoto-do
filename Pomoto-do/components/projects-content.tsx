@@ -259,7 +259,7 @@ export function ProjectsContent() {
                   <Label htmlFor="project-priority">Priority</Label>
                   <Select
                     value={newProject.priority}
-                    onValueChange={(value: any) => setNewProject((prev) => ({ ...prev, priority: value }))}
+                    onValueChange={(value: Project["priority"]) => setNewProject((prev) => ({ ...prev, priority: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -541,3 +541,4 @@ export function ProjectsContent() {
     </div>
   )
 }
+

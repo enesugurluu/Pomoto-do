@@ -56,18 +56,26 @@ interface UserProfile {
   avatar: string
 }
 
+type ThemeColorSet = {
+  primary: string
+  secondary: string
+  accent: string
+  background: string
+  foreground: string
+}
+
 interface RandomThemeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onApply: (themeName: string, colors: any) => void
-  onSave: (themeName: string, colors: any) => void
+  onApply: (themeName: string, colors: ThemeColorSet) => void
+  onSave: (themeName: string, colors: ThemeColorSet) => void
 }
 
 function RandomThemeDialog({ open, onOpenChange, onApply, onSave }: RandomThemeDialogProps) {
   const [themeName, setThemeName] = useState("")
-  const [randomColors, setRandomColors] = useState(() => generateRandomColors())
+  const [randomColors, setRandomColors] = useState<ThemeColorSet>(() => generateRandomColors())
 
-  function generateRandomColors() {
+  function generateRandomColors(): ThemeColorSet {
     const hues = [Math.floor(Math.random() * 360), Math.floor(Math.random() * 360), Math.floor(Math.random() * 360)]
 
     return {
@@ -218,7 +226,7 @@ export function SettingsContent() {
     setShowRandomThemeDialog(true)
   }
 
-  const handleRandomThemeApply = (themeName: string, colors: any) => {
+  const handleRandomThemeApply = (themeName: string, colors: ThemeColorSet) => {
     const themeKey = themeName.toLowerCase().replace(/[^a-z0-9]/g, "-")
     const newTheme = {
       name: themeKey,
@@ -230,7 +238,7 @@ export function SettingsContent() {
     setCustomTheme(themeKey)
   }
 
-  const handleRandomThemeSave = (themeName: string, colors: any) => {
+  const handleRandomThemeSave = (themeName: string, colors: ThemeColorSet) => {
     const themeKey = themeName.toLowerCase().replace(/[^a-z0-9]/g, "-")
     const newTheme = {
       name: themeKey,
@@ -572,7 +580,7 @@ export function SettingsContent() {
                 <Bell className="w-5 h-5" />
                 Notification Preferences
               </CardTitle>
-              <CardDescription>Choose what notifications you'd like to receive</CardDescription>
+              <CardDescription>Choose what notifications you&apos;d like to receive</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -851,3 +859,12 @@ export function SettingsContent() {
     </div>
   )
 }
+
+
+
+
+
+
+
+
+
