@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-      <body className="font-sans">
+      <body suppressHydrationWarning className="font-sans">
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
             <PomodoroSettingsProvider>{children}</PomodoroSettingsProvider>

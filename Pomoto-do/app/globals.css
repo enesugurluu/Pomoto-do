@@ -3,6 +3,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   /* Updated design tokens to match the premium landing page design brief */
   --background: #ffffff;
@@ -212,4 +216,126 @@
 
 .text-shadow-lg {
   text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+@keyframes drift-slow {
+  0% {
+    transform: translate3d(-5%, -5%, 0) scale(1);
+    opacity: 0.65;
+  }
+  50% {
+    transform: translate3d(8%, 6%, 0) scale(1.08);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(-5%, -5%, 0) scale(1);
+    opacity: 0.65;
+  }
+}
+
+@keyframes float-medium {
+  0% {
+    transform: translate3d(6%, -8%, 0) scale(0.95);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(-6%, 10%, 0) scale(1.05);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(6%, -8%, 0) scale(0.95);
+    opacity: 0.55;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.7;
+  }
+}
+
+.animate-drift-slow {
+  animation: drift-slow 28s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 32s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 18s ease-in-out infinite;
+}
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-slow {
+  animation: gradient-shift 24s ease-in-out infinite;
+}
+@keyframes dot-grid-pan {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4%, 6%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.dot-grid-hero {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.dot-grid-hero::before,
+.dot-grid-hero::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  width: 180%;
+  height: 180%;
+  background-repeat: repeat;
+  background-size: var(--dot-grid-size, 48px) var(--dot-grid-size, 48px);
+  opacity: 0.4;
+  transform-origin: center;
+  pointer-events: none;
+  animation: dot-grid-pan 42s ease-in-out infinite;
+}
+
+.dot-grid-hero::before {
+  background-image: radial-gradient(circle at center, color-mix(in srgb, var(--primary) 70%, transparent) 1.6px, transparent 1.6px);
+}
+
+.dot-grid-hero::after {
+  background-image: radial-gradient(circle at center, color-mix(in srgb, var(--accent) 55%, transparent) 1.6px, transparent 1.6px);
+  animation-duration: 52s;
+  animation-direction: reverse;
+  opacity: 0.28;
+  mix-blend-mode: screen;
+}
+
+@supports not (color-mix(in srgb, red 50%, transparent)) {
+  .dot-grid-hero::before {
+    background-image: radial-gradient(circle at center, var(--primary) 1.6px, transparent 1.6px);
+  }
+
+  .dot-grid-hero::after {
+    background-image: radial-gradient(circle at center, var(--accent) 1.6px, transparent 1.6px);
+  }
 }
