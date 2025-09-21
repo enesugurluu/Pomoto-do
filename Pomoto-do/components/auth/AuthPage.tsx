@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, CalendarCheck, CheckCircle2, Sparkles, Timer } from "lucide-react"
+import Image from "next/image"
+import { ArrowRight, CalendarCheck, CheckCircle2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { BubbleBackground } from "@/components/backgrounds/BubbleBackground"
+import { BorderBeam } from "@/components/ui/border-beam"
 
 const loginHighlights = [
   "Resume your last Pomodoro session instantly across devices.",
@@ -66,9 +68,14 @@ export function AuthPage({ mode }: AuthPageProps) {
 
       <header className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
         <Link href="/landing" className="flex items-center space-x-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/90 shadow-lg shadow-primary/20">
-            <Timer className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <Image
+            src="/app-icon-48.png"
+            alt="PomoTo-do icon"
+            width={44}
+            height={44}
+            className="h-11 w-11 rounded-xl shadow-lg shadow-primary/20"
+            priority
+          />
           <span className="text-lg font-semibold text-foreground">PomoTo-do</span>
         </Link>
         <Link href="/" className="text-sm font-medium text-primary hover:underline">
@@ -112,7 +119,7 @@ export function AuthPage({ mode }: AuthPageProps) {
         </aside>
 
         <section className="flex w-full max-w-md flex-col justify-center">
-          <Card className="border-none bg-background/85 shadow-2xl shadow-primary/10 backdrop-blur-xl">
+          <Card className="relative overflow-hidden border border-border/50 bg-background/85 shadow-2xl shadow-primary/10 backdrop-blur-xl">
             <CardHeader className="space-y-3">
               <CardTitle className="text-2xl font-semibold text-foreground">{title}</CardTitle>
               <CardDescription className="text-sm text-muted-foreground">{description}</CardDescription>
@@ -202,11 +209,10 @@ export function AuthPage({ mode }: AuthPageProps) {
                 </Link>
               </p>
             </CardContent>
+            <BorderBeam size={180} duration={7} delay={2.4} borderWidth={2} className="opacity-80 mix-blend-screen" />
           </Card>
         </section>
       </div>
     </BubbleBackground>
   )
 }
-
-

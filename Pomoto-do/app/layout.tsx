@@ -12,6 +12,14 @@ export const metadata: Metadata = {
   title: "PomoTo-do - Pomodoro Timer & Todo List",
   description: "A modern productivity app combining Pomodoro timer with task management",
   generator: "v0.app",
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/app-icon-192.png",
+    shortcut: "/favicon-32.png",
+  },
 }
 
 export default function RootLayout({

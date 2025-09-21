@@ -37,6 +37,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --animate-marquee: marquee var(--duration) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
 }
 
 .dark {
@@ -121,5 +123,66 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .animate-marquee {
+    animation: var(--animate-marquee);
+  }
+
+  .animate-marquee-vertical {
+    animation: var(--animate-marquee-vertical);
+  }
+
+  .animate-glow-rotate {
+    animation: glow-rotate var(--glow-duration, 4s) linear infinite;
+    transform-origin: center;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse var(--glow-duration, 4s) ease-in-out infinite;
+    transform-origin: center;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes glow-rotate {
+  0% {
+    transform: rotate(0deg) scale(var(--glow-scale, 1));
+    opacity: 0.85;
+  }
+  100% {
+    transform: rotate(360deg) scale(var(--glow-scale, 1));
+    opacity: 0.85;
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    transform: scale(calc(var(--glow-scale, 1) * 0.96));
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(calc(var(--glow-scale, 1) * 1.05));
+    opacity: 0.95;
+  }
+}
+
+@keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
   }
 }

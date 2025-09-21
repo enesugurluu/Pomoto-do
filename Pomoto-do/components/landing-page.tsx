@@ -1,27 +1,35 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useTheme } from "next-themes"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { BlurText } from "@/components/ui/blur-text"
+import { Marquee } from "@/components/ui/marquee"
+import { SpotlightCard } from "@/components/ui/spotlight-card"
+import { Switch, SwitchIndicator, SwitchWrapper } from "@/components/ui/switch"
+import { CardSpotlight } from "@/components/ui/card-spotlight"
+import { GlowEffect } from "@/components/core/glow-effect"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/core/accordion"
+import { SlidingNumber } from "@/components/core/sliding-number"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
 import {
   ArrowRight,
   BarChart3,
-  Check,
   CalendarCheck,
   ClipboardList,
   Clock,
   Mail,
   Menu,
   MessageCircle,
-  Monitor,
   Moon,
+  ChevronRight,
   Palette,
   Play,
   Repeat,
@@ -46,21 +54,30 @@ const navItems = [
 const heroStats = [
   {
     label: "Activation rate",
-    value: "70%",
+    value: 70,
+    suffix: "%",
+    precision: 0,
     description: "New accounts start a focus session in week one.",
     icon: Target,
+    targetDuration: 1200,
   },
   {
     label: "Daily focus blocks",
-    value: "3.5",
+    value: 3.5,
+    suffix: "",
+    precision: 1,
     description: "Average Pomodoros per active day.",
     icon: Clock,
+    targetDuration: 1400,
   },
   {
     label: "Week four retention",
-    value: "40%",
+    value: 40,
+    suffix: "%",
+    precision: 0,
     description: "Goal for healthy free tier habits.",
     icon: Repeat,
+    targetDuration: 1200,
   },
 ]
 
@@ -104,6 +121,8 @@ const featureHighlights = [
     icon: Palette,
   },
 ]
+
+const featureTaglines = ["Plan smarter", "Stay in flow", "Measure impact", "Make it yours"]
 
 const personas = [
   {
@@ -186,78 +205,149 @@ const contactChannels = [
   { label: "Community", detail: "Join the focus crew on Discord", icon: MessageCircle, href: "#" },
 ]
 
-const themeOptions = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
-] as const
+function PersonaTile({ persona, index }: { persona: (typeof personas)[number]; index: number }) {
+  const gradientVariants = [
+    "from-primary/20 via-card/60 to-secondary/25",
+    "from-secondary/25 via-card/60 to-primary/20",
+    "from-primary/15 via-card/60 to-primary/5",
+    "from-secondary/20 via-card/60 to-secondary/10",
+  ]
+
+  const gradient = gradientVariants[index % gradientVariants.length]
+  const initials = persona.name
+    .replace(/\(.*?\)/g, "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase()
+
+  return (
+    <article className="relative flex w-[18rem] min-w-[18rem] max-w-[18rem] flex-col gap-4 overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-6 shadow-lg shadow-primary/10 backdrop-blur">
+      <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80", gradient)} />
+      <div className="relative z-10 space-y-3">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-12 w-12 border border-primary/20 bg-background/80">
+            <AvatarFallback className="bg-primary/15 text-sm font-semibold uppercase text-primary">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wide text-primary/80 dark:text-primary/60">
+              Focus persona
+            </span>
+            <h3 className="text-lg font-semibold text-foreground">{persona.name}</h3>
+          </div>
+        </div>
+        <p className="text-sm leading-relaxed text-muted-foreground">{persona.insight}</p>
+      </div>
+    </article>
+  )
+}
+
+
+function AnimatedStatValue({
+  target,
+  suffix = "",
+  precision = 0,
+  duration = 1200,
+}: {
+  target: number
+  suffix?: string
+  precision?: number
+  duration?: number
+}) {
+  const [value, setValue] = useState(0)
+
+  useEffect(() => {
+    let frame: number
+    const start = performance.now()
+    const animate = (time: number) => {
+      const progress = Math.min((time - start) / duration, 1)
+      const eased = progress < 1 ? 1 - Math.pow(1 - progress, 3) : 1
+      const nextValue = target * eased
+      setValue(parseFloat(nextValue.toFixed(precision)))
+      if (progress < 1) {
+        frame = requestAnimationFrame(animate)
+      }
+    }
+
+    frame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frame)
+  }, [target, precision, duration])
+
+  return (
+    <div className="inline-flex items-baseline gap-1">
+      <SlidingNumber value={value} precision={precision} />
+      {suffix}
+    </div>
+  )
+}
 
 
 function ThemeSwitcher() {
-  const { resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme, theme: activeTheme } = useTheme()
   const [isMounted, setIsMounted] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const switchId = useId()
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  const theme = isMounted ? resolvedTheme ?? "system" : "system"
-  const label = theme === "dark" ? "Dark" : theme === "light" ? "Light" : "System"
+  const prefersDark =
+    activeTheme === "dark" || (activeTheme === "system" && resolvedTheme === "dark")
 
-  const handleSelect = (value: (typeof themeOptions)[number]["value"]) => {
-    setTheme(value)
-    setMenuOpen(false)
+  const isLight = isMounted ? !prefersDark : true
+
+  const handleToggle = (checked: boolean) => {
+    setTheme(checked ? "light" : "dark")
   }
 
   return (
-    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="relative flex items-center gap-2"
-          aria-label="Toggle theme"
-        >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          {menuOpen ? <span className="text-sm font-medium">{label} mode</span> : null}
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        {themeOptions.map((option) => {
-          const OptionIcon = option.icon
-          return (
-            <DropdownMenuItem
-              key={option.value}
-              onClick={() => handleSelect(option.value)}
-              className="flex items-center gap-2"
-            >
-              <OptionIcon className="h-4 w-4" />
-              <span>{option.label}</span>
-              {theme === option.value ? <Check className="ml-auto h-4 w-4 text-primary" /> : null}
-            </DropdownMenuItem>
-          )
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <SwitchWrapper>
+      <Switch
+        id={switchId}
+        size="xl"
+        checked={isLight}
+        onCheckedChange={handleToggle}
+        aria-label="Toggle theme"
+      />
+      <SwitchIndicator state="on">
+        <Sun className="size-4 text-primary-foreground" />
+      </SwitchIndicator>
+      <SwitchIndicator state="off">
+        <Moon className="size-4 text-muted-foreground" />
+      </SwitchIndicator>
+    </SwitchWrapper>
   )
 }
 
 export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const currentYear = new Date().getFullYear()
+  const { resolvedTheme } = useTheme()
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const isDarkTheme = isMounted ? resolvedTheme === "dark" : false
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background text-foreground">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
           <Link href="/landing" className="flex items-center space-x-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Timer className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <Image
+              src="/app-icon-48.png"
+              alt="PomoTo-do icon"
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-xl"
+              priority
+            />
             <span className="text-xl font-semibold">PomoTo-do</span>
           </Link>
 
@@ -339,14 +429,25 @@ export function LandingPage() {
                 Unified deep work workspace
               </Badge>
               <h1 className="text-balance text-4xl font-black tracking-tight md:text-6xl">
-                Plan, focus, and measure in one Pomodoro HQ
+                <BlurText
+                  text="Plan, focus, and measure in one Pomodoro HQ"
+                  className="justify-center"
+                  delay={140}
+                />
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-muted-foreground md:text-xl">
                 PomoTo-do blends task planning, focus sessions, and upgrade ready analytics so builders, students, and teams can stay in flow.
               </p>
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
-                <Link href="/signup">
-                  <Button size="lg" className="group">
+              <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:justify-center">
+                <Link href="/signup" className="relative flex justify-center">
+                  <GlowEffect
+                    colors={isDarkTheme ? ["#6366f1", "#22d3ee", "#a855f7"] : ["#4f46e5", "#38bdf8", "#a855f7"]}
+                    blur="soft"
+                    duration={6}
+                    scale={1.25}
+                    className="rounded-full opacity-80"
+                  />
+                  <Button size="lg" className="group relative z-10 rounded-full px-8">
                     Start for free
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
@@ -371,7 +472,14 @@ export function LandingPage() {
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</p>
-                        <h3 className="text-2xl font-black">{stat.value}</h3>
+                        <div className="text-2xl font-black">
+                          <AnimatedStatValue
+                            target={stat.value}
+                            suffix={stat.suffix}
+                            precision={stat.precision}
+                            duration={stat.targetDuration}
+                          />
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -424,18 +532,36 @@ export function LandingPage() {
               </h2>
             </div>
             <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
-              {featureHighlights.map((feature) => {
+              {featureHighlights.map((feature, index) => {
                 const Icon = feature.icon
+                const spotlightColor = "color-mix(in srgb, var(--primary) 60%, transparent)"
+                const tagline = featureTaglines[index % featureTaglines.length]
+
                 return (
-                  <Card key={feature.title} className="border-none bg-card/60 backdrop-blur">
-                    <CardHeader className="space-y-3">
-                      <Icon className="h-6 w-6 text-primary" />
-                      <CardTitle className="text-xl">{feature.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{feature.description}</p>
-                    </CardContent>
-                  </Card>
+                  <SpotlightCard
+                    key={feature.title}
+                    spotlightColor={spotlightColor}
+                    className="h-full border border-border/50 bg-gradient-to-br from-primary/5 via-card/85 to-primary/10 p-7"
+                  >
+                    <div className="flex h-full flex-col justify-between gap-6">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-inner shadow-primary/20">
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-semibold text-foreground">{feature.title}</h3>
+                          <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-start text-xs font-medium uppercase tracking-wide text-primary">
+                        <span className="inline-flex items-center gap-2">
+                          <Sparkles className="h-3 w-3" />
+                          {tagline}
+                        </span>
+                      </div>
+                    </div>
+                  </SpotlightCard>
                 )
               })}
             </div>
@@ -452,17 +578,26 @@ export function LandingPage() {
                 Built for creators, power users, students, and teams
               </h2>
             </div>
-            <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
-              {personas.map((persona) => (
-                <Card key={persona.name} className="border-none bg-card/60 backdrop-blur">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{persona.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{persona.insight}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="mx-auto mt-12 max-w-6xl space-y-6">
+              <Marquee
+                pauseOnHover
+                repeat={2}
+                className="rounded-3xl border border-border/60 bg-card/70 px-6 py-8 shadow-inner shadow-primary/10 backdrop-blur"
+              >
+                {personas.map((persona, index) => (
+                  <PersonaTile key={persona.name} persona={persona} index={index} />
+                ))}
+              </Marquee>
+              <Marquee
+                pauseOnHover
+                reverse
+                repeat={2}
+                className="rounded-3xl border border-border/40 bg-primary/5 px-6 py-8 shadow-inner shadow-primary/10 backdrop-blur"
+              >
+                {[...personas].reverse().map((persona, index) => (
+                  <PersonaTile key={`${persona.name}-reverse`} persona={persona} index={index} />
+                ))}
+              </Marquee>
             </div>
           </div>
         </section>
@@ -478,40 +613,94 @@ export function LandingPage() {
               </h2>
             </div>
             <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
-              {pricing.map((tier) => (
-                <Card
+              {pricing.map((tier) => {
+                const palette = (() => {
+                  if (tier.name === "Pro") {
+                    return {
+                      color: isDarkTheme ? "rgba(124, 58, 237, 0.32)" : "rgba(168, 85, 247, 0.26)",
+                      reveal: isDarkTheme
+                        ? [[147, 51, 234], [236, 72, 153]]
+                        : [[168, 85, 247], [236, 72, 153]],
+                    }
+                  }
+                  if (tier.name === "Premium") {
+                    return {
+                      color: isDarkTheme ? "rgba(249, 115, 22, 0.28)" : "rgba(245, 158, 11, 0.22)",
+                      reveal: isDarkTheme
+                        ? [[248, 113, 113], [251, 191, 36]]
+                        : [[251, 191, 36], [59, 130, 246]],
+                    }
+                  }
+                  return {
+                    color: isDarkTheme ? "rgba(37, 99, 235, 0.3)" : "rgba(59, 130, 246, 0.18)",
+                    reveal: isDarkTheme
+                      ? [[30, 64, 175], [14, 165, 233]]
+                      : [[59, 130, 246], [14, 165, 233]],
+                  }
+                })()
+
+                return (
+                <CardSpotlight
                   key={tier.name}
-                  className={`border-none bg-card/60 backdrop-blur ${tier.highlight ? "ring-2 ring-primary" : ""}`}
+                  className={cn(
+                    "relative h-full overflow-hidden border border-border/60 bg-card/80 p-8 shadow-xl shadow-primary/15 backdrop-blur",
+                    tier.highlight && "ring-2 ring-primary",
+                  )}
+                  color={palette.color}
+                  radius={380}
+                  revealColors={palette.reveal as [number, number, number][]}
+                  dotSize={2}
+                  spotlightClassName="rounded-3xl"
                 >
                   {tier.highlight ? (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
+                    <Badge className="pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                       Most popular
                     </Badge>
                   ) : null}
-                  <CardHeader className="space-y-3 text-center">
-                    <CardTitle className="text-xl">{tier.name}</CardTitle>
-                    <CardDescription>{tier.description}</CardDescription>
-                    <div className="pt-2">
-                      <span className="text-3xl font-black">{tier.price}</span>
+                  <div className="relative z-10 flex h-full flex-col gap-6 pt-6">
+                    <div className="space-y-4 text-center">
+                      <CardTitle className="text-xl font-semibold text-foreground">{tier.name}</CardTitle>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {tier.description}
+                      </CardDescription>
+                      <div className="pt-2 text-4xl font-black text-primary">{tier.price}</div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="flex h-full flex-col justify-between space-y-4">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
+                    <ul className="space-y-3 text-sm text-muted-foreground">
                       {tier.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2">
+                        <li key={feature} className="flex items-start gap-3 text-left">
                           <ShieldCheck className="mt-1 h-4 w-4 text-primary" />
                           <span>{feature}</span>
                         </li>
                       ))}
                     </ul>
                     <Link href={tier.href}>
-                      <Button className="w-full" variant={tier.highlight ? "default" : tier.variant ?? "default"}>
-                        {tier.cta}
-                      </Button>
+                      {tier.name === "Pro" ? (
+                        <div className="relative flex justify-center">
+                          <GlowEffect
+                            colors={isDarkTheme ? ["#7c3aed", "#f97316", "#22d3ee", "#ec4899"] : ["#8b5cf6", "#facc15", "#38bdf8", "#f472b6"]}
+                            mode="colorShift"
+                            blur="soft"
+                            duration={6}
+                            scale={1.3}
+                            className="rounded-full opacity-80"
+                          />
+                          <Button
+                            className="relative z-10 w-full gap-2 rounded-full px-6"
+                            variant="default"
+                          >
+                            {tier.cta}
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button className="w-full" variant={tier.highlight ? "default" : tier.variant ?? "default"}>
+                          {tier.cta}
+                        </Button>
+                      )}
                     </Link>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                </CardSpotlight>
+              )})}
             </div>
           </div>
         </section>
@@ -527,13 +716,29 @@ export function LandingPage() {
               </h2>
             </div>
             <div className="mx-auto mt-12 max-w-3xl">
-              <Accordion type="single" collapsible className="space-y-4">
+              <Accordion
+                className="flex w-full flex-col gap-2"
+                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                variants={{
+                  expanded: { opacity: 1, scale: 1 },
+                  collapsed: { opacity: 0.85, scale: 0.95 },
+                }}
+              >
                 {faqs.map((faq, index) => (
-                  <AccordionItem key={faq.question} value={`faq-${index}`} className="overflow-hidden rounded-xl border">
-                    <AccordionTrigger className="px-6 py-4 text-left text-sm font-medium hover:no-underline">
-                      {faq.question}
+                  <AccordionItem
+                    key={faq.question}
+                    value={`faq-${index}`}
+                    className="rounded-2xl border border-border/60 bg-card/70 px-2 py-1 shadow-sm shadow-primary/5"
+                  >
+                    <AccordionTrigger className="flex w-full items-center gap-3 rounded-xl px-4 py-4 text-left text-base font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-primary transition-transform duration-200 group-data-expanded:rotate-90" />
+                      <span className="flex-1 text-left leading-snug">{faq.question}</span>
                     </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-4 text-sm text-muted-foreground">{faq.answer}</AccordionContent>
+                    <AccordionContent className="origin-top-left">
+                      <div className="pl-9 pr-4 pb-4 pt-2 text-sm leading-relaxed text-muted-foreground">
+                        {faq.answer}
+                      </div>
+                    </AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
@@ -616,9 +821,13 @@ export function LandingPage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
             <div className="space-y-4">
               <Link href="/landing" className="flex items-center space-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <Timer className="h-5 w-5 text-primary-foreground" />
-                </div>
+                <Image
+                  src="/app-icon-48.png"
+                  alt="PomoTo-do icon"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-xl"
+                />
                 <span className="text-xl font-semibold">PomoTo-do</span>
               </Link>
               <p className="text-sm text-muted-foreground">
@@ -708,4 +917,3 @@ export function LandingPage() {
     </div>
   )
 }
-

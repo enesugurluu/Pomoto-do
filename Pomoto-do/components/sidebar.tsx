@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -80,9 +81,14 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                <Timer className="w-4 h-4 text-accent-foreground" />
-              </div>
+              <Image
+                src="/app-icon-48.png"
+                alt="PomoTo-do icon"
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-xl"
+                priority
+              />
               <span className="font-bold text-lg text-sidebar-foreground">PomoTo-do</span>
             </div>
           )}
