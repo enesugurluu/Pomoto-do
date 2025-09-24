@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "pomotodo-prod",
+    "production": "pomotodo-prod",
+    "staging": "pomotodo-staging",
+    "development": "pomotodo-dev"
+  }
+}
